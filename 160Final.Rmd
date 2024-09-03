@@ -1,0 +1,132 @@
+---
+title: "FINALPROJ"
+author: "Vinh Ton"
+date: "2024-05-31"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(baseballr)
+library(dplyr)
+library(ggplot2)
+library(reshape2)
+library(zoo)
+```
+
+```{r}
+player_id <- playerid_lookup("Verlander") %>%
+   dplyr::filter(first_name == "Justin") %>%
+   dplyr::select(mlbam_id, first_name, last_name)
+
+player_id[1,1]
+```
+
+```{r}
+verData1 = statcast_search(start_date="2015-03-31", end_date="2015-10-31", playerid = 434378, player_type='pitcher')
+
+verData2 = statcast_search(start_date="2016-03-31", end_date="2016-10-31", playerid = 434378, player_type='pitcher')
+
+verData3 = statcast_search(start_date="2017-03-31", end_date="2017-10-31", playerid = 434378, player_type='pitcher')
+
+verData4 = statcast_search(start_date="2018-03-31", end_date="2018-10-31", playerid = 434378, player_type='pitcher')
+
+verData5 = statcast_search(start_date="2019-03-31", end_date="2019-10-31", playerid = 434378, player_type='pitcher')
+```
+
+```{r}
+verDataFinal = rbind(verData1, verData2, verData3, verData4, verData5)
+```
+
+```{r}
+write.table(verData1, file="verData1.csv", sep= ',')
+write.table(verData2, file="verData2.csv", sep= ',')
+write.table(verData3, file="verData3.csv", sep= ',')
+write.table(verData4, file="verData4.csv", sep= ',')
+write.table(verData5, file="verData5.csv", sep= ',')
+```
+#let's filter data: which ones do we need?
+
+```{r}
+cols = c("pitch_type", "game_year", "pitch_name", "release_speed", "release_pos_x", "release_pos_z", "pfx_x", "pfx_z", "vx0", "vy0", "vz0", "ax", "ay", "az", "launch_speed", "launch_angle", "release_spin_rate", "spin_axis", "zone", "plate_x", "plate_z")
+```
+
+```{r}
+verDataAdjusted = verDataFinal %>% filter(pitch_type!="", pitch_type!="PO", pitch_type!="IN",
+                                          pitch_type!="FC", pitch_type!="SI")
+verDataAdjusted = verDataAdjusted %>% select(all_of(cols))
+```
+
+```{r}
+verDataCounts = verDataAdjusted %>% group_by(pitch_name, game_year) %>% count()
+verDataCounts %>% ggplot(aes(x=game_year, y=n, color=pitch_name)) + geom_line()
+```
+
+We can see that Verlander mostly pitches 4-seam fastballs for the entire 5 year period. From 2015 to 2017, the frequency with which he pitches these increases. The same pattern is true for  sliders and curveballs. However, after 2016, the frequency with which he throws change-ups decreases drastically until 2018. From 2018 onwards, the amount of fastballs he pitches decreases harshly, while he throws more changeups, curveballs, and sliders.
+
+```{r}
+fastballs = verDataAdjusted %>% filter(pitch_type=="FF")
+fastballs %>% ggplot(aes(x=pfx_x, y=pfx_z, color=as.factor(game_year))) + geom_point(alpha=0.7)
+
+```
+
+
+From a glimpse at this graph, we can see that over time, Verlander's pitches become much more condensed and accurate. His pitches in 2015 and 2016 tend to spread out the most in this scatter plot; however, his pitches in 2019 are all heavily concentrated in one area, with much less spread. This indicates an increase in control in his fastballs.
+
+```{r}
+#x velocity + acceleration
+fastballs %>% ggplot(aes(x=vx0, y=ax, color=as.factor(game_year))) + geom_point(alpha=0.7)
+```     
+
+In terms of x, we notice that over a five year period, Verlander's x velocity got slower. However, the acceleration actually increased. For example, the center of his pitches in 2017 clustered around -20 ft/s/s, but in 2019, they were higher, with a center around -12 ft/s/s.
+
+
+```{r}
+# y velocity + acceleration
+fastballs %>% ggplot(aes(x=vy0, y=ay, color=as.factor(game_year))) + geom_point(alpha=0.7)
+```
+
+Similarly, for y, we see that Verlander's y velocity actually saw a tighter spread, which meant his velocity became more consistent, at around -137 ft/s/s. A similar story can be said of acceleration.
+
+
+```{r}
+fastballs %>% ggplot(aes(x=vz0, y=az, color=as.factor(game_year))) + geom_point(alpha=0.7)
+```
+
+In terms of z velocty, Verlander's fastball pitch speed became slower but again more consistent. However, his z acceleration in 2019 was consistently higher and more condensed than his pitches in previous years, hovering at around -7 ft/s/s.
+
+
+
+```{r}
+library(vcd)
+zonesYear = xtabs(~zone+game_year, data=fastballs)
+
+zonesYear %>% mosaic(shade=TRUE, direction="h")
+```
+
+Here, the colors of the mosaic plot indicate values of note. Specifically, we can see that in 2015, Verlander pitched in zone 14 more often than you would expect; however, in 2019, he pitched more frequently in zones 1 and 2 and much less frequently than in zone 14. This would indicate, for example, that Verlander's fast ball pitches landed consistently higher in 2019 than he did in 2015.
+
+```{r}
+kruskal.test(vx0~game_year, data=fastballs)
+kruskal.test(vy0~game_year, data=fastballs)
+kruskal.test(vz0~game_year, data=fastballs)
+kruskal.test(ax~game_year, data=fastballs)
+kruskal.test(ay~game_year, data=fastballs)
+kruskal.test(az~game_year, data=fastballs)
+kruskal.test(pfx_x~game_year, data=fastballs)
+kruskal.test(pfx_z~game_year, data=fastballs)
+kruskal.test(zone~game_year, data=fastballs)
+```
+
+
+# Pairwise Texts
+```{r}
+pairwise.wilcox.test(fastballs$pfx_x, fastballs$game_year, p.adjust.method="bonferroni")
+pairwise.wilcox.test(fastballs$pfx_z, fastballs$game_year, p.adjust.method="bonferroni")
+pairwise.wilcox.test(fastballs$vx0, fastballs$game_year, p.adjust.method="bonferroni")
+pairwise.wilcox.test(fastballs$vy0, fastballs$game_year, p.adjust.method="bonferroni")
+pairwise.wilcox.test(fastballs$vz0, fastballs$game_year, p.adjust.method="bonferroni")
+pairwise.wilcox.test(fastballs$ax, fastballs$game_year, p.adjust.method="bonferroni")
+pairwise.wilcox.test(fastballs$ay, fastballs$game_year, p.adjust.method="bonferroni")
+pairwise.wilcox.test(fastballs$az, fastballs$game_year, p.adjust.method="bonferroni")
+pairwise.wilcox.test(fastballs$zone, fastballs$game_year, p.adjust.method="bonferroni")
+```

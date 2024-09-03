@@ -1,0 +1,461 @@
+---
+title: "STA 160 Final"
+author: "Miriam Aguirre"
+date: "2024-06-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(dplyr)
+library(ggplot2)
+```
+
+```{r read data}
+# Read in all of the scraped data
+
+df2015 <- read.csv("verData1.csv")
+df2016 <- read.csv("verData2.csv")
+df2017 <- read.csv("verData3.csv")
+df2018 <- read.csv("verData4.csv")
+df2019 <- read.csv("verData5.csv")
+
+```
+
+Analyze four types of pitches: slider(SL), curveball(CU), changeup(CH) using: 
+Pfx_z, pfx_x (amount of vertical + horizontal movement by the time the ball reaches home plate)
+Velocity + acceleration of pitch
+Zone
+
+
+```{r data manip}
+df <- rbind(df2015, df2016, df2017, df2018, df2019)
+
+slider <- df %>%
+  filter(pitch_type == "SL") %>%
+  select(pitch_type, game_date, pfx_z, pfx_x, zone, ax, ay, az, vx0, vy0, vz0) %>%
+  mutate(game_year = as.factor(substr(game_date,1,4)))
+
+curveball <- df %>%
+  filter(pitch_type == "CU") %>%
+  select(pitch_type, game_date, pfx_z, pfx_x, zone, ax, ay, az, vx0, vy0, vz0) %>%
+  mutate(game_year = as.factor(substr(game_date,1,4)))
+
+changeup <- df %>%
+  filter(pitch_type == "CH") %>%
+  select(pitch_type, game_date, pfx_z, pfx_x, zone, ax, ay, az, vx0, vy0, vz0) %>%
+  mutate(game_year = as.factor(substr(game_date,1,4)))
+
+fastball <- df %>%
+  filter(pitch_type == "FF") %>%
+  select(pitch_type, game_date, pfx_z, pfx_x, zone, ax, ay, az, vx0, vy0, vz0) %>%
+  mutate(game_year = as.factor(substr(game_date,1,4)))
+```
+
+
+
+## pfx_x vs pfx_z
+
+### slider
+
+```{r slider pfx}
+ggplot(slider, aes(x = pfx_x, y = pfx_z, color = factor(game_year))) +
+  geom_point(alpha=.25) +
+  stat_smooth(aes(group = game_year, color = game_year),formula = y~x, method='loess')+
+  labs(title = "Scatterplot of pfx_x vs pfx_z for Each Year for Slider pitch",
+       x = "pfx_x",
+       y = "pfx_z",
+       color = "Year") +
+  theme_minimal()
+```
+
+
+
+```{r slider kw}
+kruskal.test(pfx_x~game_year, data=slider)
+kruskal.test(pfx_z~game_year, data=slider)
+
+#post hoc testing
+pairwise.wilcox.test(slider$pfx_x, slider$game_year, p.adjust.method = "bonferroni")
+pairwise.wilcox.test(slider$pfx_z, slider$game_year, p.adjust.method = "bonferroni")
+```
+
+It seems that overtime, Justin Verlander's slider pitches have become much more condensed and accurate. In the years 2015-2017, we can see the most variation in both axes whereas 2018 and 2019 show the least variation. Further, it seems that variability in 2019 was higher than 2018. This indicates that Verlander's control in slider pitches has increased overall though there was a slight decrease in performance from 2018 to 2019. Additionally, for this type of pitch it seems that Verlander has a lot more variation in horizontal movement than in vertical movement. Nonetheless, based on the Kruskal Wallis test p-values, we can conclude that indeed there is a difference in both horizontal and vertical movement between the five years. Specifically, only 2015 vs 2016 and 2017 have non-significant differences in the horizontal direction. Only 2017 and 2019 have non-significant differences in the vertical direction. 
+
+### curveball
+
+```{r curveball pfx}
+ggplot(curveball, aes(x = pfx_x, y = pfx_z, color = factor(game_year))) +
+  geom_point(alpha=.25) +
+  stat_smooth(aes(group = game_year, color = game_year),formula = y~x, method='loess')+
+  labs(title = "Scatterplot of pfx_x vs pfx_z for Each Year for Curveball pitch",
+       x = "pfx_x",
+       y = "pfx_z",
+       color = "Year") +
+  theme_minimal()
+```
+
+```{r curveball kw}
+kruskal.test(pfx_x~game_year, data=curveball)
+kruskal.test(pfx_z~game_year, data=curveball)
+
+ggplot(curveball, aes(x=pfx_x, color=game_year)) +
+  geom_boxplot()
+
+ggplot(curveball, aes(x=pfx_z, color=game_year)) +
+  geom_boxplot()
+
+pairwise.wilcox.test(curveball$pfx_x, curveball$game_year, p.adjust.method = "bonferroni")
+pairwise.wilcox.test(curveball$pfx_z, curveball$game_year, p.adjust.method = "bonferroni")
+```
+
+
+Over time, Verlander's curve ball pitches have shifted more to the center of the plate in the horizontal direction. They also seem to have shifted lower down in the vertical direction. It seems that Verlander's curve balls have transitioned more from horizontal movement to vertical movement. This could eba change in his pitching style to have more of a drop curve ball instead of a side curve ball. Based on the Kruskal-Wallis p-values, we can conclude that there is indeed a difference in both horizontal and vertical movement in his curve balls accross the five-year period. Specifically, 2015 vs 2017 and 2018 have non-significant differences in the horizontal direction. In the vertical direction, however, all pairwise comparisons are significant. 
+
+
+### changeup
+
+
+```{r changeup pfx}
+ggplot(changeup, aes(x = pfx_x, y = pfx_z, color = factor(game_year))) +
+  geom_point(alpha=.2) +
+  stat_smooth(aes(group = game_year, color = game_year),formula = y~x, method='loess')+
+  labs(title = "Scatterplot of pfx_x vs pfx_z for Each Year for Changeup pitch",
+       x = "pfx_x",
+       y = "pfx_z",
+       color = "Year") +
+  theme_minimal()
+```
+
+```{r changeup kw}
+kruskal.test(pfx_x~game_year, data=changeup)
+kruskal.test(pfx_z~game_year, data=changeup)
+
+
+ggplot(changeup, aes(x=pfx_x, color=game_year)) +
+  geom_boxplot()
+
+ggplot(changeup, aes(x=pfx_z, color=game_year)) +
+  geom_boxplot()
+
+pairwise.wilcox.test(changeup$pfx_x, changeup$game_year, p.adjust.method = "bonferroni")
+pairwise.wilcox.test(changeup$pfx_z, changeup$game_year, p.adjust.method = "bonferroni")
+
+```
+
+In the first three years, Verlander's change up pitches have had similar spread in the horizontal direction. In 2019, it seems that there is a lot more spread in the pitches, but that is due to outliers. In the vertical direction, however, there seems to be much more changes. In 2016-2018, it seems he had more variation in vertical movement, which was on average lower than 2015 and 2019. In 2019, he seemed to have vertical movement closer to 2015; this may show that he tried to change his change up pitch style, but resorted to a similar style that he started with.
+The Kruskal-Wallis results show that there were differences in both horizontal and vertical movement throughout the years. The p-value for horizontal movement was smaller than that for vertical movement, which supports the idea that there was less change in the horizontal movement for this pitch type. Specifically, 2016 vs 2017 and 2018; 2017 vs 2018 and 2019; and 2018 vs 2019 have non-significant differences in the horizontal direction. 2015 vs 2019, 2016 vs 2017, 2017 vs 2018 have non-significant differences in the vertical direction. 
+
+## Velocity vs acceleration
+
+Acceleration and velocity are measured in three dimensions: x, y, and z. These scatter plots compare velocity and acceleration in the three dimensions for the three pitch types. 
+
+### x-dimension
+
+#### slider
+
+```{r slider xv/a}
+ggplot(slider, aes(x = vx0, y = ax, color = factor(game_year))) +
+  geom_point(alpha=.25) +
+  stat_smooth(aes(group = game_year, color = game_year),formula = y~x, method='loess')+
+  labs(title = "Scatterplot of velocity vs acceleration in x-dimension for Each Year for Slider pitch",
+       x = "acceleration",
+       y = "velocity",
+       color = "Year") +
+  theme_minimal()
+```
+
+```{r}
+kruskal.test(vx0~game_year, data=slider)
+kruskal.test(ax~game_year, data=slider)
+
+pairwise.wilcox.test(slider$vx0, slider$game_year, p.adjust.method = "bonferroni")
+pairwise.wilcox.test(slider$ax, slider$game_year, p.adjust.method = "bonferroni")
+```
+
+On average, velocity in the x-dimension has seemingly decreased over the years. On average, acceleration in the x-dimension has stayed the same. However, there seems to be differences in the spreads of each year, as is supported by the small p-values in the Kruskal-Wallis tests. 
+Specifically, the only non-significant difference was between 2015 and 2016 in terms of acceleration. Though the average acceleration and velocity are similar, there are differences in spread throughout all the years. 
+
+
+#### curveball
+
+```{r curveball xv/a}
+ggplot(curveball, aes(x = vx0, y = ax, color = factor(game_year))) +
+  geom_point(alpha=.25) +
+  stat_smooth(aes(group = game_year, color = game_year),formula = y~x, method='loess')+
+  labs(title = "Scatterplot of velocity vs acceleration in x-dimension for Each Year for Slider pitch",
+       x = "acceleration",
+       y = "velocity",
+       color = "Year") +
+  theme_minimal()
+```
+
+```{r}
+kruskal.test(vx0~game_year, data=curveball)
+kruskal.test(ax~game_year, data=curveball)
+
+pairwise.wilcox.test(curveball$vx0, curveball$game_year, p.adjust.method = "bonferroni")
+pairwise.wilcox.test(curveball$ax, curveball$game_year, p.adjust.method = "bonferroni")
+```
+
+On average, it seems velocity in the x-direction has had some slight changes throughout the years for curveballs. Compared to 2015, we see significant differences in 2017, 2018, and 2019. Comparing 2019 to 2018, we see little significant difference. This shows that Verlander may have become more comfortable with that specific type of velocity in 2018 and continued to apply it in the next year. 
+As for acceleration, there are significant differences in all the years except for 2017 vs 2018. However, there is a significant difference between 2019 and 2018, which shows that Verlander may have changed his acceleration techniques after that year. Due to the differences between 2019 and all the other years, we may conclude that Verlander's curveball pitches have changed significantly in terms of x-dimension acceleration. Due to the unpredictable nature of curveballs, it is important to have variation in acceleration to confuse opponents. 
+
+#### changeup
+
+```{r changeup xv/a}
+ggplot(changeup, aes(x = vx0, y = ax, color = factor(game_year))) +
+  geom_point(alpha=.25) +
+  stat_smooth(aes(group = game_year, color = game_year),formula = y~x, method='loess')+
+  labs(title = "Scatterplot of velocity vs acceleration in x-dimension for Each Year for Changeup pitch",
+       x = "acceleration",
+       y = "velocity",
+       color = "Year") +
+  theme_minimal()
+```
+
+```{r}
+kruskal.test(vx0~game_year, data=changeup)
+kruskal.test(ax~game_year, data=changeup)
+
+pairwise.wilcox.test(changeup$vx0, changeup$game_year, p.adjust.method = "bonferroni")
+pairwise.wilcox.test(changeup$ax, changeup$game_year, p.adjust.method = "bonferroni")
+```
+
+```{r}
+ggplot(changeup, aes(x=vx0, color=game_year)) +
+  geom_boxplot()
+
+ggplot(changeup, aes(x=ax, color=game_year)) +
+  geom_boxplot()
+```
+
+It seems that on average, velocity for change up pitches has slowly decreased over the years. This is supported by the significant differences in acceleration from 2019 compared to all the other years. Within the other years, there are non-significant differences between 2015 vs 2017 and 2018, showing the lack of diversity in velocity in those earlier years. 
+In terms of acceleration, the years 2016, 2017, and 2018 seem to be very similar. However, 2015 and 2019 seem to be very different from the other years. This shows that while Verlander seemed to have a consistent acceleration in the middle years, changes still had to be made in the 2019 season. After 2015, the change in accelration may have worked, but after 2018, Verlander chose to change his style again.
+
+
+### y-dimension
+
+#### slider
+
+```{r slider yv/a}
+ggplot(slider, aes(x = vy0, y = ay, color = factor(game_year))) +
+  geom_point(alpha=.25) +
+  stat_smooth(aes(group = game_year, color = game_year),formula = y~x, method='loess')+
+  labs(title = "Scatterplot of velocity vs acceleration in y-dimension for Each Year for Slider pitch",
+       x = "acceleration",
+       y = "velocity",
+       color = "Year") +
+  theme_minimal()
+```
+
+```{r}
+kruskal.test(vy0~game_year, data=slider)
+kruskal.test(ay~game_year, data=slider)
+
+pairwise.wilcox.test(slider$vy0, slider$game_year, p.adjust.method = "bonferroni")
+pairwise.wilcox.test(slider$ay, slider$game_year, p.adjust.method = "bonferroni")
+```
+
+```{r}
+ggplot(slider, aes(x=vy0, color=game_year)) +
+  geom_boxplot()
+
+ggplot(slider, aes(x=ay, color=game_year)) +
+  geom_boxplot()
+```
+
+It seems that velocity in the y-dimension has changed drastically throughout the years for the slider pitch. There is a lot of variation in how fast Verlander throws the slider pitch throughout each year. Similarly, acceleration in the y-dimension has changed significantly for the slider pitch. The inconsistency in this dimension is understandable since each slider pitch may be thrown at a different speed from each other. 
+
+#### curveball
+
+```{r curveball yv/a}
+ggplot(curveball, aes(x = vy0, y = ay, color = factor(game_year))) +
+  geom_point(alpha=.25) +
+  stat_smooth(aes(group = game_year, color = game_year),formula = y~x, method='loess')+
+  labs(title = "Scatterplot of velocity vs acceleration in y-dimension for Each Year for Curveball pitch",
+       x = "acceleration",
+       y = "velocity",
+       color = "Year") +
+  theme_minimal()
+```
+
+```{r}
+kruskal.test(vy0~game_year, data=curveball)
+kruskal.test(ay~game_year, data=curveball)
+
+pairwise.wilcox.test(curveball$vy0, curveball$game_year, p.adjust.method = "bonferroni")
+pairwise.wilcox.test(curveball$ay, curveball$game_year, p.adjust.method = "bonferroni")
+```
+
+In the y-direction, it seems that velocity has changed significantly. However, 2015 and 2017 are similar, and 2018 and 2019 are similar. This shows that while there have been changes in velocity for the curveball pitch, there are close similarities in recent years. 
+
+#### changeup
+
+```{r changeup yv/a}
+ggplot(changeup, aes(x = vy0, y = ay, color = factor(game_year))) +
+  geom_point(alpha=.25) +
+  stat_smooth(aes(group = game_year, color = game_year),formula = y~x, method='loess')+
+  labs(title = "Scatterplot of velocity vs acceleration in y-dimension for each year for Changeup pitch",
+       x = "acceleration",
+       y = "velocity",
+       color = "Year") +
+  theme_minimal()
+```
+
+```{r}
+kruskal.test(vy0~game_year, data=changeup)
+kruskal.test(ay~game_year, data=changeup)
+
+pairwise.wilcox.test(changeup$vy0, changeup$game_year, p.adjust.method = "bonferroni")
+pairwise.wilcox.test(changeup$ay, changeup$game_year, p.adjust.method = "bonferroni")
+```
+
+Velocity in the y-direction seems to have become more consistent in 2017 - 2019 due to the smaller slope compared to earlier years. 
+There are signficicant differences in velocity for 2015 vs all the other years, which shows that Verlander's change up pitch has changed significantly from the beginning. However, it seems that there is no significant difference between 2016 vs 2019, and 2017 vs 2018. It seems that overall, there has not been a vast variation in the velocity of pitches from year to year. This may show that Verlander has found a good velocity in the y-dimension for change up pitches since he seems to have a similar style on average.  
+For changeup pitches, acceleration in the y-dimension seems to have become more consistent in the last two years. 2015 vs 2017 are similar, and 2016 vs 2017 are similar; however, all other pairwise comparisons are statistically significant. This shows that change-up pitches had similar acceleration in 2015-2017, but has changed drastically in 2018 and 2019. 
+
+### z-dimension
+
+#### slider
+
+```{r slider zv/a}
+ggplot(slider, aes(x = vz0, y = az, color = factor(game_year))) +
+  geom_point(alpha=.25) +
+  stat_smooth(aes(group = game_year, color = game_year),formula = y~x, method='loess')+
+  labs(title = "Scatterplot of velocity vs acceleration in z-dimension for Each Year for Slider pitch",
+       x = "acceleration",
+       y = "velocity",
+       color = "Year") +
+  theme_minimal()
+```
+
+```{r}
+kruskal.test(vz0~game_year, data=slider)
+kruskal.test(az~game_year, data=slider)
+
+pairwise.wilcox.test(slider$vz0, slider$game_year, p.adjust.method = "bonferroni")
+pairwise.wilcox.test(slider$az, slider$game_year, p.adjust.method = "bonferroni")
+```
+
+It seems that velocity in the z-dimension for slider pitches was similar in 2015-2017, but it has changed in 2018 and 2019, decreasing on average. This is supported by the significant differences in 2018 vs all other years, and 2019 in all other years. It seems that velocity was higher in 2018 vs 2019, which may show that Verlander opted to slow down his pitches in the z-direction in 2019. 
+Acceleration in the z-direction for slider pitches seems to be different in each year, besides some similarities in 2017 vs 2019. This is similar to what we found for velocity; perhaps Verlander opted to change his slider style in 2018, but changed it again in 2019. 
+
+#### curveball
+
+```{r curveball zv/a}
+ggplot(curveball, aes(x = vz0, y = az, color = factor(game_year))) +
+  geom_point(alpha=.25) +
+  stat_smooth(aes(group = game_year, color = game_year),formula = y~x, method='loess')+
+  labs(title = "Scatterplot of velocity vs acceleration in z-dimension for Each Year for Curveball pitch",
+       x = "acceleration",
+       y = "velocity",
+       color = "Year") +
+  theme_minimal()
+```
+
+```{r}
+kruskal.test(vz0~game_year, data=curveball)
+kruskal.test(az~game_year, data=curveball)
+
+pairwise.wilcox.test(curveball$vz0, curveball$game_year, p.adjust.method = "bonferroni")
+pairwise.wilcox.test(curveball$az, curveball$game_year, p.adjust.method = "bonferroni")
+```
+
+In the z-dimension, both acceleration and velocity have changed drastically from year-to-year for the curveball pitch. 
+Overall, there is little variation in velocity in the years 2018 and 2019 due to the relatively flat slopes of those lines, which shows that he has been consistent within the seasons. 
+
+#### changeup
+
+```{r changeup zv/a}
+ggplot(changeup, aes(x = vz0, y = az, color = factor(game_year))) +
+  geom_point(alpha=.25) +
+  stat_smooth(aes(group = game_year, color = game_year),formula = y~x, method='loess')+
+  labs(title = "Scatterplot of velocity vs acceleration in z-dimension for Each Year for Changeup pitch",
+       x = "acceleration",
+       y = "velocity",
+       color = "Year") +
+  theme_minimal()
+```
+
+```{r}
+kruskal.test(vz0~game_year, data=changeup)
+kruskal.test(az~game_year, data=changeup)
+
+pairwise.wilcox.test(changeup$vz0, changeup$game_year, p.adjust.method = "bonferroni")
+pairwise.wilcox.test(changeup$az, changeup$game_year, p.adjust.method = "bonferroni")
+```
+
+Velocity for changeup pitches in the z-dimension seems to follow similar trends for 2015-2019. Though there are changes in average velocity, the trends are generally the same from year to year. The most significant differences in trends are seen in 2019 vs 2015, 2016, and 2017.
+Acceleration for change up pitches seems to follow similar trends in 2015 vs 2019, 2016 vs 2017, and 2017 vs 2018. 
+
+## Zone
+All pitches located in Zones 1–9 are considered “In-Zone” (strike)
+
+All pitches located in Zones 11–14 are considered “Out-of-Zone” (ball)
+
+
+Fastball zone and interpretation was copied from Vinh for reference. 
+
+```{r fastball zone}
+library(vcd)
+zonesYear = xtabs(~zone+game_year, data=fastball)
+
+zonesYear %>% mosaic(shade=TRUE, direction="h")
+```
+
+Here, the colors of the mosaic plot indicate values of note. Specifically, we can see that in 2015, Verlander pitched in zone 14 more often than you would expect; however, in 2019, he pitched more frequently in zones 1 and 2 and much less frequently than in zone 14. This would indicate, for example, that Verlander's fast ball pitches landed consistently higher in 2019 than he did in 2015.
+
+### slider
+
+```{r slider zone}
+#library(vcd)
+zonesYear = xtabs(~zone+game_year, data=slider)
+
+zonesYear %>% mosaic(shade=TRUE, direction="h")
+
+```
+
+```{r}
+kruskal.test(zone~game_year, data=slider)
+
+pairwise.wilcox.test(slider$zone, slider$game_year, p.adjust.method = "bonferroni")
+```
+
+In general, it seems that sliders in 2015 are likely to be in the left-most zones (4, 7, 11, 13) which is understandable since Verlander is a right-handed pitcher. However, in 2019, sliders were less likely to fall in zones 1 and 11, and slightly more likely to fall in zone 14. This shows a difference in his sliders as they shifted more to the right as time progressed.  However, this was a slow progression as there is little significant difference in zone frequency between subsequent years. In fact, the most significant difference was 2015 vs 2019 which shows that there was slight changes in zone frequency for the slider pitch over five years. 
+
+
+### curveball
+
+```{r curveball zone}
+zonesYear = xtabs(~zone+game_year, data=curveball)
+
+zonesYear %>% mosaic(shade=TRUE, direction="h")
+```
+
+```{r}
+kruskal.test(zone~game_year, data=curveball)
+
+pairwise.wilcox.test(curveball$zone, curveball$game_year, p.adjust.method = "bonferroni")
+```
+
+In 2015, curveball pitches were slightly more likely to be in zone 11, but in 2019 they were least likely to be in that zone. This shows that curveball pitches may have become slightly more accurate in the five year period, since zone 11 is outside of strike range. 
+However, according the the Kruskal-Wallis test, there is not significant difference in zone by game year for the curveball pitch; each year shows similar zone frequency for this pitch type. 
+
+### changeup
+
+```{r changeup zone}
+zonesYear = xtabs(~zone+game_year, data=changeup)
+
+zonesYear %>% mosaic(shade=TRUE, direction="h")
+```
+
+```{r}
+kruskal.test(zone~game_year, data=changeup)
+
+pairwise.wilcox.test(changeup$zone, changeup$game_year, p.adjust.method = "bonferroni")
+```
+
+The large red rectangle in Zone 11 for the year 2016 indicates that there were fewer change-up pitches than expected in this zone for that year. The large blue rectangle in Zone 11 for the years 2017 and 2019 indicates that there were more change-up pitches than expected in this zone for that year. It seems that in 2017 and 2019, change up pitches were more likely to fall outside of the strike zone than in 2016. 
+However, according the the Kruskal-Wallis test, there is not significant difference in zone by game year for the changeup pitch; each year shows similar zone frequency for this pitch type. 
